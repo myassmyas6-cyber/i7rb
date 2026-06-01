@@ -80,7 +80,7 @@ app.post("/api/keys/generate", (req, res) => {
   res.json({ key: e.key, expiresAt: e.expiresAt });
 });
 
-/* ─── Login endpoint (fixes the login bug) ────────────────────── */
+/* ─── Login endpoint ──────────────────────────────────────────── */
 app.post("/api/admin/login", (req, res) => {
   const { password } = req.body || {};
   if (!password || password !== ADMIN_PASSWORD) {
@@ -128,7 +128,7 @@ app.delete("/api/admin/keys/:key", (req, res) => {
   res.json({ ok: true });
 });
 
-/* ─── HTML Pages ──────────────────────────────────────────────── */
+/* ─── صفحة المستخدم ───────────────────────────────────────────── */
 function getPage() {
   const lua = getLua()
     .replace(/&/g, "&amp;")
@@ -150,7 +150,6 @@ function getPage() {
   .card h2{color:#a78bfa;font-size:16px;margin-bottom:16px;font-weight:700}
   .btn{width:100%;padding:13px;border-radius:10px;background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;font-size:15px;font-weight:700;border:none;cursor:pointer;transition:.2s}
   .btn:hover{opacity:.88;transform:translateY(-1px)}
-  .btn:active{transform:translateY(0)}
   .btn:disabled{opacity:.5;cursor:not-allowed}
   .key-box{background:#0a0a12;border:1px solid #2a1a4a;border-radius:10px;padding:16px;margin-top:14px;display:none;text-align:center}
   .key-text{font-family:monospace;font-size:20px;color:#c4b5fd;letter-spacing:3px;word-break:break-all}
@@ -202,19 +201,14 @@ async function getKey() {
   }
   btn.disabled = false;
 }
-
-function copyKey() {
-  navigator.clipboard.writeText(document.getElementById('keyText').textContent);
-}
-
-function copyLua() {
-  navigator.clipboard.writeText(document.querySelector('.lua').textContent);
-}
+function copyKey() { navigator.clipboard.writeText(document.getElementById('keyText').textContent); }
+function copyLua() { navigator.clipboard.writeText(document.querySelector('.lua').textContent); }
 </script>
 </body>
 </html>`;
 }
 
+/* ─── لوحة الأدمن ─────────────────────────────────────────────── */
 function adminPage() {
   return `<!DOCTYPE html>
 <html lang="ar" dir="rtl">
@@ -225,8 +219,6 @@ function adminPage() {
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
   body{font-family:'Segoe UI',sans-serif;background:#0a0a0f;color:#e0e0e0;min-height:100vh}
-
-  /* ── Login ── */
   #loginScreen{display:flex;align-items:center;justify-content:center;min-height:100vh}
   .loginBox{background:#13131e;border:1px solid #2a2a40;border-radius:16px;padding:40px 36px;width:300px;text-align:center}
   .loginBox h1{color:#a78bfa;font-size:32px;font-weight:900;margin-bottom:4px}
@@ -237,35 +229,25 @@ function adminPage() {
   .loginBox button:hover{opacity:.88}
   .loginBox button:disabled{opacity:.5;cursor:not-allowed}
   #loginError{color:#f87171;font-size:12px;margin-top:10px;display:none}
-
-  /* ── Main ── */
   #mainScreen{display:none;padding:24px;max-width:800px;margin:0 auto}
   header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}
   header h1{color:#a78bfa;font-size:20px;font-weight:900}
   #logoutBtn{background:#1e1e2e;border:1px solid #2a2a40;color:#888;padding:7px 14px;border-radius:8px;cursor:pointer;font-size:13px;transition:.2s}
   #logoutBtn:hover{color:#fff;border-color:#444}
-
-  /* Stats */
   .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:22px}
   .stat{background:#13131e;border:1px solid #2a2a40;border-radius:12px;padding:16px;text-align:center}
   .stat-num{font-size:28px;font-weight:900;color:#a78bfa}
   .stat-lbl{font-size:11px;color:#555;margin-top:2px}
-
-  /* Cards */
   .card{background:#13131e;border:1px solid #2a2a40;border-radius:14px;padding:20px;margin-bottom:16px}
   .card h2{color:#a78bfa;font-size:14px;font-weight:700;margin-bottom:14px}
-
-  /* Form row */
   .row{display:flex;gap:8px;flex-wrap:wrap}
-  .row input,.row select{padding:9px 12px;border-radius:8px;border:1px solid #2a2a40;background:#0d0d18;color:#fff;font-size:13px;flex:1;min-width:100px;outline:none}
+  .row input{padding:9px 12px;border-radius:8px;border:1px solid #2a2a40;background:#0d0d18;color:#fff;font-size:13px;flex:1;min-width:100px;outline:none}
   .row input:focus{border-color:#7c3aed}
   .btn{padding:9px 16px;border-radius:8px;background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;border:none;cursor:pointer;font-size:13px;font-weight:600;white-space:nowrap;transition:.2s}
   .btn:hover{opacity:.88}
   .btn-gen{background:linear-gradient(135deg,#059669,#047857)}
   .btn-del{background:#7f1d1d;padding:5px 10px;font-size:12px}
   .btn-tog{background:#1e1e2e;border:1px solid #2a2a40;color:#aaa;padding:5px 10px;font-size:12px}
-
-  /* Keys list */
   #keysList{display:flex;flex-direction:column;gap:8px;margin-top:10px;max-height:420px;overflow-y:auto}
   .key-row{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#0d0d18;border-radius:9px;border:1px solid #1a1a2e;gap:8px;flex-wrap:wrap}
   .key-info{flex:1;min-width:0}
@@ -281,7 +263,6 @@ function adminPage() {
 </head>
 <body>
 
-<!-- ══ Login Screen ══ -->
 <div id="loginScreen">
   <div class="loginBox">
     <h1>I7RB</h1>
@@ -293,29 +274,25 @@ function adminPage() {
   </div>
 </div>
 
-<!-- ══ Main Screen ══ -->
 <div id="mainScreen">
   <header>
     <h1>I7RB — لوحة التحكم</h1>
     <button id="logoutBtn" onclick="logout()">تسجيل الخروج</button>
   </header>
-
   <div class="stats">
     <div class="stat"><div class="stat-num" id="statTotal">—</div><div class="stat-lbl">إجمالي الكودات</div></div>
     <div class="stat"><div class="stat-num" id="statActive">—</div><div class="stat-lbl">فعّالة</div></div>
     <div class="stat"><div class="stat-num" id="statExpired">—</div><div class="stat-lbl">منتهية</div></div>
   </div>
-
   <div class="card">
     <h2>إنشاء كود جديد</h2>
     <div class="row">
-      <input type="text" id="newKey"   placeholder="الكود (اتركه فارغاً للتوليد التلقائي)">
+      <input type="text" id="newKey"   placeholder="الكود (فارغ = تلقائي)">
       <input type="text" id="newLabel" placeholder="الاسم / التسمية">
       <input type="datetime-local" id="newExpiry">
       <button class="btn btn-gen" onclick="createKey()">إنشاء</button>
     </div>
   </div>
-
   <div class="card">
     <h2>كل الكودات</h2>
     <div class="row" style="margin-bottom:12px">
@@ -329,25 +306,21 @@ function adminPage() {
 let pwd = '';
 let allKeys = [];
 
-/* ── Login ── */
 async function doLogin() {
   const input = document.getElementById('pwdInput');
   const err   = document.getElementById('loginError');
   const btn   = document.getElementById('loginBtn');
   const p     = input.value.trim();
   if (!p) return;
-
-  btn.disabled    = true;
+  btn.disabled = true;
   btn.textContent = 'جاري...';
   err.style.display = 'none';
-
   try {
     const r = await fetch('/api/admin/login', {
-      method:  'POST',
+      method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ password: p })
+      body: JSON.stringify({ password: p })
     });
-
     if (r.ok) {
       pwd = p;
       document.getElementById('loginScreen').style.display = 'none';
@@ -359,28 +332,23 @@ async function doLogin() {
       input.focus();
     }
   } catch {
-    err.textContent   = 'خطأ في الاتصال بالسيرفر';
+    err.textContent = 'خطأ في الاتصال بالسيرفر';
     err.style.display = 'block';
   }
-
-  btn.disabled    = false;
+  btn.disabled = false;
   btn.textContent = 'دخول';
 }
 
 function logout() {
-  pwd = '';
-  allKeys = [];
+  pwd = ''; allKeys = [];
   document.getElementById('loginScreen').style.display = 'flex';
   document.getElementById('mainScreen').style.display  = 'none';
   document.getElementById('pwdInput').value = '';
 }
 
-/* ── Load Keys ── */
 async function loadKeys() {
   try {
-    const r = await fetch('/api/admin/keys', {
-      headers: { 'x-admin-password': pwd }
-    });
+    const r = await fetch('/api/admin/keys', { headers: { 'x-admin-password': pwd } });
     if (!r.ok) { logout(); return; }
     allKeys = await r.json();
     updateStats();
@@ -391,96 +359,60 @@ async function loadKeys() {
 }
 
 function updateStats() {
-  const now     = new Date();
-  const active  = allKeys.filter(e => e.active && (!e.expiresAt || new Date(e.expiresAt) > now));
-  const expired = allKeys.filter(e => e.expiresAt && new Date(e.expiresAt) <= now);
+  const now = new Date();
   document.getElementById('statTotal').textContent   = allKeys.length;
-  document.getElementById('statActive').textContent  = active.length;
-  document.getElementById('statExpired').textContent = expired.length;
+  document.getElementById('statActive').textContent  = allKeys.filter(e => e.active && (!e.expiresAt || new Date(e.expiresAt) > now)).length;
+  document.getElementById('statExpired').textContent = allKeys.filter(e => e.expiresAt && new Date(e.expiresAt) <= now).length;
 }
 
 function renderKeys() {
-  const q    = document.getElementById('searchInput').value.toLowerCase();
+  const q = document.getElementById('searchInput').value.toLowerCase();
   const list = document.getElementById('keysList');
-  const filtered = allKeys.filter(e =>
-    e.key.toLowerCase().includes(q) ||
-    (e.label || '').toLowerCase().includes(q)
-  );
-
-  if (!filtered.length) {
-    list.innerHTML = '<div class="empty">لا توجد كودات</div>';
-    return;
-  }
-
+  const filtered = allKeys.filter(e => e.key.toLowerCase().includes(q) || (e.label||'').toLowerCase().includes(q));
+  if (!filtered.length) { list.innerHTML = '<div class="empty">لا توجد كودات</div>'; return; }
   list.innerHTML = filtered.map(e => {
-    const now     = new Date();
-    const expired = e.expiresAt && new Date(e.expiresAt) <= now;
-    const status  = e.active && !expired
+    const expired = e.expiresAt && new Date(e.expiresAt) <= new Date();
+    const badge   = e.active && !expired
       ? '<span class="badge badge-on">فعّال</span>'
       : '<span class="badge badge-off">' + (expired ? 'منتهي' : 'معطّل') + '</span>';
-    const exp = e.expiresAt
-      ? 'ينتهي: ' + new Date(e.expiresAt).toLocaleString('ar-SA')
-      : 'بدون انتهاء';
-    const togLabel = e.active ? 'تعطيل' : 'تفعيل';
-    return \`<div class="key-row">
-      <div class="key-info">
-        <div class="key-code">\${e.key}</div>
-        <div class="key-meta">\${status}\${e.label ? e.label + ' · ' : ''}\${exp}</div>
-      </div>
-      <div class="key-actions">
-        <button class="btn btn-tog" onclick="toggleKey('\${e.key}',\${!e.active})">\${togLabel}</button>
-        <button class="btn btn-del" onclick="deleteKey('\${e.key}')">حذف</button>
-      </div>
-    </div>\`;
+    const exp = e.expiresAt ? 'ينتهي: ' + new Date(e.expiresAt).toLocaleString('ar-SA') : 'بدون انتهاء';
+    return '<div class="key-row"><div class="key-info"><div class="key-code">'+e.key+'</div><div class="key-meta">'+badge+(e.label?e.label+' · ':'')+exp+'</div></div><div class="key-actions"><button class="btn btn-tog" onclick="toggleKey(\''+e.key+'\','+(!e.active)+')">'+(e.active?'تعطيل':'تفعيل')+'</button><button class="btn btn-del" onclick="deleteKey(\''+e.key+'\')">حذف</button></div></div>';
   }).join('');
 }
 
-/* ── Create Key ── */
 async function createKey() {
-  const keyVal  = document.getElementById('newKey').value.trim();
-  const label   = document.getElementById('newLabel').value.trim();
-  const expiry  = document.getElementById('newExpiry').value;
-
-  const body = {
-    key:       keyVal || undefined,
-    label:     label  || undefined,
-    expiresAt: expiry ? new Date(expiry).toISOString() : undefined
-  };
-
-  if (!body.key) {
+  const keyVal = document.getElementById('newKey').value.trim();
+  const label  = document.getElementById('newLabel').value.trim();
+  const expiry = document.getElementById('newExpiry').value;
+  if (!keyVal) {
     const r = await fetch('/api/keys/generate', { method: 'POST' });
-    const d = await r.json();
-    body.key       = d.key;
-    body.expiresAt = body.expiresAt || d.expiresAt;
+    await r.json();
   } else {
     await fetch('/api/admin/keys', {
-      method:  'POST',
+      method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-admin-password': pwd },
-      body:    JSON.stringify(body)
+      body: JSON.stringify({ key: keyVal, label: label||undefined, expiresAt: expiry ? new Date(expiry).toISOString() : undefined })
     });
   }
-
-  document.getElementById('newKey').value    = '';
-  document.getElementById('newLabel').value  = '';
+  document.getElementById('newKey').value = '';
+  document.getElementById('newLabel').value = '';
   document.getElementById('newExpiry').value = '';
   await loadKeys();
 }
 
-/* ── Toggle Key ── */
 async function toggleKey(key, active) {
   await fetch('/api/admin/keys/' + encodeURIComponent(key), {
-    method:  'PATCH',
+    method: 'PATCH',
     headers: { 'Content-Type': 'application/json', 'x-admin-password': pwd },
-    body:    JSON.stringify({ active })
+    body: JSON.stringify({ active })
   });
   await loadKeys();
 }
 
-/* ── Delete Key ── */
 async function deleteKey(key) {
   if (!confirm('تأكيد حذف الكود: ' + key + '؟')) return;
   await fetch('/api/admin/keys/' + encodeURIComponent(key), {
-    method:  'DELETE',
+    method: 'DELETE',
     headers: { 'x-admin-password': pwd }
   });
   await loadKeys();
@@ -491,6 +423,4 @@ async function deleteKey(key) {
 }
 
 /* ─── Start ───────────────────────────────────────────────────── */
-app.listen(PORT, () => {
-  console.log("I7RB running on port " + PORT);
-});
+app.listen(PORT, () => console.log("I7RB running on port " + PORT));

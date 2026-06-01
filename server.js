@@ -4,7 +4,7 @@ const fs = require("fs");
 const path = require("path");
 const app = express();
 const PORT = process.env.PORT || 3000;
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "wwaasseemm";
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "myasi7rb";
 const DATA_FILE = path.join(__dirname, "keys.json");
 app.use(express.json());
 const keys = new Map();

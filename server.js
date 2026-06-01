@@ -1,29 +1,96 @@
 const express = require("express");
 const crypto = require("crypto");
-const fs = require("fs");
-const path = require("path");
+
 const app = express();
 const PORT = process.env.PORT || 3000;
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "wwaasseemm";
-const DATA_FILE = path.join(__dirname, "keys.json");
+
 app.use(express.json());
+
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "ChangeMe123";
+
 const keys = new Map();
-function loadKeys(){try{if(fs.existsSync(DATA_FILE)){const d=JSON.parse(fs.readFileSync(DATA_FILE,"utf-8"));for(const e of d)keys.set(e.key,e);}}catch{}}
-function saveKeys(){try{fs.writeFileSync(DATA_FILE,JSON.stringify([...keys.values()],null,2));}catch{}}
-function genKey(){const p=crypto.randomBytes(4).toString("hex").toUpperCase();return "I7RB-"+p.slice(0,4)+"-"+p.slice(4);}
-function getLua(){try{return fs.readFileSync(path.join(__dirname,"script.lua"),"utf-8");}catch{return "-- script.lua not found";}}
-function isAdmin(req,res){if(req.headers["x-admin-password"]!==ADMIN_PASSWORD){res.status(401).json({error:"Unauthorized"});return false;}return true;}
-loadKeys();
-app.get("/",function(req,res){res.redirect("/get");});
-app.get("/get",function(req,res){res.type("html").send(getPage());});
-app.get("/i7rb-ctrl-8z2q",function(req,res){res.type("html").send(adminPage());});
-app.get("/api/script",function(req,res){res.json({script:getLua()});});
-app.get("/api/validate",function(req,res){var k=String(req.query.key||"").trim();if(!k)return res.json({valid:false,reason:"no_key"});var e=keys.get(k);if(!e)return res.json({valid:false,reason:"invalid"});if(!e.active)return res.json({valid:false,reason:"inactive"});if(e.expiresAt&&new Date(e.expiresAt)<new Date())return res.json({valid:false,reason:"expired"});return res.json({valid:true});});
-app.post("/api/keys/generate",function(req,res){var k=genKey();var ex=new Date(Date.now()+4*3600000).toISOString();var e={key:k,label:"auto",active:true,createdAt:new Date().toISOString(),expiresAt:ex};keys.set(k,e);saveKeys();res.json({key:e.key,expiresAt:e.expiresAt});});
-app.get("/api/admin/keys",function(req,res){if(!isAdmin(req,res))return;res.json([...keys.values()]);});
-app.post("/api/admin/keys",function(req,res){if(!isAdmin(req,res))return;var k=req.body.key;if(!k)return res.status(400).json({error:"key required"});var e={key:k,label:req.body.label||"",active:true,createdAt:new Date().toISOString(),expiresAt:req.body.expiresAt||null};keys.set(k,e);saveKeys();res.json(e);});
-app.patch("/api/admin/keys/:key",function(req,res){if(!isAdmin(req,res))return;var e=keys.get(req.params.key);if(!e)return res.status(404).json({error:"not found"});if(typeof req.body.active==="boolean")e.active=req.body.active;saveKeys();res.json(e);});
-app.delete("/api/admin/keys/:key",function(req,res){if(!isAdmin(req,res))return;if(!keys.has(req.params.key))return res.status(404).json({error:"not found"});keys.delete(req.params.key);saveKeys();res.json({ok:true});});
-function getPage(){var lua=getLua().replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");return'<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>i7rb</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:sans-serif;background:#0a0a0d;color:#e0e0e0;display:flex;flex-direction:column;align-items:center;padding:40px 16px}h1{font-size:48px;font-weight:900;color:#a78bfa;margin-bottom:4px}.card{background:#13131a;border:1px solid #1e1e2e;border-radius:16px;padding:28px;width:100%;max-width:420px;margin-top:20px}.btn{width:100%;padding:13px;border-radius:10px;background:#7c3aed;color:#fff;font-size:15px;font-weight:700;border:none;cursor:pointer;margin-top:10px}.ks{background:#0d0d10;border:1px solid #2a1a4a;border-radius:8px;padding:14px;margin-top:14px;display:none}.kt{font-family:monospace;font-size:18px;color:#c4b5fd;letter-spacing:2px}.lua{background:#08080b;padding:12px;border-radius:8px;font-family:monospace;font-size:11px;color:#86efac;max-height:160px;overflow-y:auto;white-space:pre;direction:ltr;text-align:left;margin-top:10px}</style></head><body><h1>i7rb</h1><p style="color:#555;margin-bottom:8px">Key System</p><div class="card"><h2 style="color:#a78bfa;margin-bottom:14px">احصل على كودك</h2><button class="btn" onclick="getKey(this)">احصل على الكود</button><div class="ks" id="ks"><p style="color:#666;font-size:12px;margin-bottom:6px">كودك:</p><div class="kt" id="kt"></div><button class="btn" onclick="navigator.clipboard.writeText(document.getElementById(\'kt\').textContent)">نسخ الكود</button></div></div><div class="card"><h2 style="color:#a78bfa;margin-bottom:10px">السكريبت</h2><div class="lua">'+lua+'</div><button class="btn" onclick="navigator.clipboard.writeText(document.querySelector(\'.lua\').textContent)">نسخ السكريبت</button></div><script>async function getKey(btn){btn.disabled=true;btn.textContent="جاري...";try{var r=await fetch("/api/keys/generate",{method:"POST"});var d=await r.json();if(r.ok){document.getElementById("kt").textContent=d.key;document.getElementById("ks").style.display="block";btn.textContent="تم";}else{btn.disabled=false;btn.textContent="حاول مجدداً";}}catch{btn.disabled=false;btn.textContent="خطأ";}}<\/script></body></html>';}
-function adminPage(){return'<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>I7RB Admin</title><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:sans-serif;background:#0d0d0f;color:#e0e0e0;min-height:100vh}#ls{display:flex;align-items:center;justify-content:center;min-height:100vh}.lb{background:#18181f;border:1px solid #2a2a3a;border-radius:14px;padding:36px;width:290px;text-align:center}.lb h1{color:#a78bfa;margin-bottom:4px}.lb p{color:#666;font-size:13px;margin-bottom:18px}.lb input{width:100%;padding:10px;border-radius:8px;border:1px solid #333;background:#111;color:#fff;font-size:15px;margin-bottom:10px;text-align:center}.lb button{width:100%;padding:10px;border-radius:8px;background:#7c3aed;color:#fff;border:none;cursor:pointer;font-size:15px}#le{color:#f87171;font-size:12px;margin-top:8px;display:none}#ms{display:none;padding:20px;max-width:700px;margin:0 auto}header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}header h1{color:#a78bfa;font-size:18px}#lo{background:#2a2a3a;border:none;color:#999;padding:6px 12px;border-radius:6px;cursor:pointer}.st{display:flex;gap:10px;margin-bottom:16px}.s{background:#18181f;border:1px solid #2a2a3a;border-radius:10px;padding:12px 16px;flex:1}.sn{font-size:22px;font-weight:700;color:#a78bfa}.sl{font-size:12px;color:#555}.cd{background:#18181f;border:1px solid #2a2a3a;border-radius:12px;padding:18px;margin-bottom:14px}.cd h2{color:#a78bfa;font-size:14px;margin-bottom:12px}.ar{display:flex;gap:8px;flex-wrap:wrap}.ar input,.ar select{padding:8px 12px;border-radius:8px;border:1px solid #2a2a3a;background:#111;color:#fff;font-size:13px}.ar input{flex:1;min-width:100px}.ar button{padding:8px 14px;border-radius:8px;background:#7c3aed;color:#fff;border:none;cursor:pointer;font-size:13px}.kr{display:flex;align-items:center;justify-content:space-between;padding:10px;border-radius:8px;background:#111;margin-bottom:6px;gap:8px}.kc{font-family:monospace;font-size:14px;color:#f5d0fe}.kl{font-size:11px;color:#666;margin-top:2px}.ks2{font-size:11px;padding:2px 8px;border-radius:20px;font-weight:600}.on{background:#14532d;color:#4ade80}.off{background:#3b0c0c;color:#f87171}.kas{display:flex;gap:5px}.bt{padding:4px 9px;border-radius:5px;border:none;cursor:pointer;font-size:12px;background:#2a2a3a;color:#ccc}.bd{padding:4px 9px;border-radius:5px;border:none;cursor:pointer;font-size:12px;background:#3b0c0c;color:#f87171}.em{color:#444;font-size:13px;text-align:center;padding:14px}.lua2{background:#0d0d10;border:1px solid #2a2a3a;border-radius:8px;padding:12px;font-family:monospace;font-size:11px;color:#a3e635;white-space:pre;overflow:auto;max-height:150px;direction:ltr;text-align:left;margin-top:8px}.cl{background:#7c3aed;color:#fff;border:none;border-radius:6px;padding:6px 12px;cursor:pointer;font-size:12px;margin-top:6px}</style></head><body><div id="ls"><div class="lb"><h1>I7RB</h1><p>لوحة التحكم</p><input type="password" id="pi" placeholder="كلمة المرور" onkeydown="if(event.key===\'Enter\')login()"><button onclick="login()">دخول</button><div id="le">كلمة المرور غلط</div></div></div><div id="ms"><header><h1>I7RB - لوحة التحكم</h1><button id="lo" onclick="logout()">خروج</button></header><div class="st"><div class="s"><div class="sn" id="stt">0</div><div class="sl">الكل</div></div><div class="s"><div class="sn" id="sta">0</div><div class="sl">فعالة</div></div><div class="s"><div class="sn" id="sti">0</div><div class="sl">موقوفة</div></div></div><div class="cd"><h2>اضافة كود</h2><div class="ar"><input type="text" id="nk" placeholder="I7RB-XXXX-XXXX"><input type="text" id="nl" placeholder="الاسم" style="max-width:120px"><select id="nd"><option value="4h">4 ساعات</option><option value="1d">يوم</option><option value="1w">اسبوع</option><option value="1m">شهر</option><option value="perm">دائم</option></select><button onclick="addKey()">اضافة</button></div></div><div class="cd"><h2>الاكواد</h2><div id="kl"><div class="em">لا يوجد اكواد</div></div></div><div class="cd"><h2>السكريبت</h2><div class="lua2" id="lua"></div><button class="cl" onclick="copyL()">نسخ السكريبت</button></div></div><script>var P="";async function login(){var p=document.getElementById("pi").value.trim();if(!p)return;document.getElementById("le").style.display="none";try{var r=await fetch("/api/admin/keys",{headers:{"x-admin-password":p}});if(r.ok){P=p;document.getElementById("ls").style.display="none";document.getElementById("ms").style.display="block";loadL();loadKeys();}else document.getElementById("le").style.display="block";}catch{document.getElementById("le").style.display="block";}}function logout(){P="";document.getElementById("ls").style.display="flex";document.getElementById("ms").style.display="none";document.getElementById("pi").value="";}async function loadL(){try{var r=await fetch("/api/script");var d=await r.json();document.getElementById("lua").textContent=d.script||"";}catch{}}function copyL(){navigator.clipboard.writeText(document.getElementById("lua").textContent);var b=document.querySelector(".cl");b.textContent="تم";setTimeout(function(){b.textContent="نسخ السكريبت";},1500);}async function loadKeys(){var r=await fetch("/api/admin/keys",{headers:{"x-admin-password":P}});if(!r.ok)return;var ks=await r.json();document.getElementById("stt").textContent=ks.length;var ac=ks.filter(function(k){return k.active;}).length;document.getElementById("sta").textContent=ac;document.getElementById("sti").textContent=ks.length-ac;var l=document.getElementById("kl");if(!ks.length){l.innerHTML="<div class=\"em\">لا يوجد اكواد</div>";return;}l.innerHTML=ks.map(function(k){var ex="دائم";if(k.expiresAt){var t=new Date(k.expiresAt)-Date.now();if(t<=0)ex="منتهي";else if(t<86400000)ex=Math.ceil(t/3600000)+" ساعة";else ex=Math.ceil(t/86400000)+" يوم";}return"<div class=\"kr\"><div><div class=\"kc\">"+k.key+"</div><div class=\"kl\">"+(k.label||"")+" "+ex+"</div></div><span class=\"ks2 "+(k.active?"on":"off")+"\">"+(k.active?"فعال":"موقوف")+"</span><div class=\"kas\"><button class=\"bt\" onclick=\"tog(\'"+k.key+"\',"+(!k.active)+")\">"+( k.active?"ايقاف":"تفعيل")+"</button><button class=\"bd\" onclick=\"del(\'"+k.key+"\')\">حذف</button></div></div>";}).join("");}async function addKey(){var k=document.getElementById("nk").value.trim();if(!k)return;var l=document.getElementById("nl").value.trim();var dur={"4h":14400000,"1d":86400000,"1w":604800000,"1m":2592000000,"perm":null}[document.getElementById("nd").value];var ex=dur?new Date(Date.now()+dur).toISOString():null;await fetch("/api/admin/keys",{method:"POST",headers:{"Content-Type":"application/json","x-admin-password":P},body:JSON.stringify({key:k,label:l,expiresAt:ex})});document.getElementById("nk").value="";document.getElementById("nl").value="";loadKeys();}async function tog(k,a){await fetch("/api/admin/keys/"+encodeURIComponent(k),{method:"PATCH",headers:{"Content-Type":"application/json","x-admin-password":P},body:JSON.stringify({active:a})});loadKeys();}async function del(k){if(!confirm("حذف "+k+"؟"))return;await fetch("/api/admin/keys/"+encodeURIComponent(k),{method:"DELETE",headers:{"x-admin-password":P}});loadKeys();}<\/script></body></html>';}
-app.listen(PORT,function(){console.log("I7RB on port "+PORT);});
+
+function generateKey() {
+  return "I7RB-" + crypto.randomBytes(4).toString("hex").toUpperCase();
+}
+
+function isAdmin(req, res, next) {
+  const pass = req.headers["x-admin-password"];
+  if (pass !== ADMIN_PASSWORD) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  next();
+}
+
+app.get("/", (req, res) => {
+  res.send("I7RB Key System Online");
+});
+
+// التحقق من الكود
+app.get("/api/validate", (req, res) => {
+  const key = String(req.query.key || "");
+
+  const data = keys.get(key);
+
+  if (!data) {
+    return res.json({ valid: false, reason: "invalid" });
+  }
+
+  if (!data.active) {
+    return res.json({ valid: false, reason: "inactive" });
+  }
+
+  if (data.expiresAt && Date.now() > data.expiresAt) {
+    return res.json({ valid: false, reason: "expired" });
+  }
+
+  res.json({ valid: true });
+});
+
+// توليد كود جديد
+app.post("/api/admin/generate", isAdmin, (req, res) => {
+  const key = generateKey();
+
+  const expiresAt = Date.now() + (4 * 60 * 60 * 1000);
+
+  keys.set(key, {
+    key,
+    active: true,
+    createdAt: Date.now(),
+    expiresAt
+  });
+
+  res.json({
+    success: true,
+    key,
+    expiresAt
+  });
+});
+
+// عرض جميع الأكواد
+app.get("/api/admin/keys", isAdmin, (req, res) => {
+  res.json([...keys.values()]);
+});
+
+// حذف كود
+app.delete("/api/admin/keys/:key", isAdmin, (req, res) => {
+  keys.delete(req.params.key);
+  res.json({ success: true });
+});
+
+// تفعيل أو إيقاف كود
+app.patch("/api/admin/keys/:key", isAdmin, (req, res) => {
+  const item = keys.get(req.params.key);
+
+  if (!item) {
+    return res.status(404).json({ error: "Not Found" });
+  }
+
+  item.active = !!req.body.active;
+
+  res.json(item);
+});
+
+app.listen(PORT, () => {
+  console.log(`I7RB running on port ${PORT}`);
+});
